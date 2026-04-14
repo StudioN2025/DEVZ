@@ -1,1071 +1,656 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    user-select: none;
-}
-
-body {
-    font-family: 'Courier New', 'Monaco', monospace;
-    background: #0a0c15;
-    overflow: hidden;
-    height: 100vh;
-}
-
-/* ========== АНИМАЦИИ ========== */
-@keyframes glowPulse {
-    0% { text-shadow: 0 0 5px #00ff88; }
-    50% { text-shadow: 0 0 20px #00ff88, 0 0 30px #00ffaa; }
-    100% { text-shadow: 0 0 5px #00ff88; }
-}
-
-@keyframes float {
-    0% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
-    100% { transform: translateY(0px); }
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-@keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-}
-
-@keyframes bounce {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
+// ========== ИГРОВОЕ СОСТОЯНИЕ ==========
+let gameState = {
+    money: 50000,
+    reputation: 50,
+    developers: 3,
+    studioLevel: 1,
+    studioExp: 0,
+    day: 1,
+    projects: [],
+    completedGames: [],
+    nextProjectId: 1,
+    totalGamesReleased: 0,
+    totalMoneyEarned: 0,
+    bestGame: null,
+    // Кастомизация офиса
+    office: {
+        wall: 'default',
+        floor: 'default',
+        decor: {
+            plant: false,
+            poster: false,
+            trophy: false,
+            console: false
+        }
     }
-    to {
-        opacity: 1;
-        transform: translateY(0);
+};
+
+let settings = {
+    sound: true,
+    animations: true,
+    autosave: true,
+    particles: true
+};
+
+let gameInterval = null;
+
+// ========== ЗАСТАВКА ==========
+window.addEventListener('DOMContentLoaded', () => {
+    loadSettings();
+    startSplashAndMenu();
+});
+
+function startSplashAndMenu() {
+    const splash = document.getElementById('splashScreen');
+    const loadingBar = document.getElementById('loadingBar');
+    const splashText = document.getElementById('splashText');
+    
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += Math.random() * 15 + 5;
+        if (progress >= 100) {
+            progress = 100;
+            clearInterval(interval);
+            loadingBar.style.width = '100%';
+            splashText.textContent = 'Готово! Добро пожаловать в DEVZ!';
+            setTimeout(() => {
+                splash.style.opacity = '0';
+                setTimeout(() => {
+                    splash.classList.add('hidden');
+                    showMainMenu();
+                }, 800);
+            }, 500);
+        }
+        loadingBar.style.width = progress + '%';
+        if (progress < 30) splashText.textContent = 'Загрузка движка...';
+        else if (progress < 60) splashText.textContent = 'Инициализация AI анализатора...';
+        else if (progress < 90) splashText.textContent = 'Подготовка офиса...';
+        else splashText.textContent = 'Почти готово...';
+    }, 60);
+}
+
+// ========== ГЛАВНОЕ МЕНЮ ==========
+function showMainMenu() {
+    document.getElementById('mainMenu').classList.remove('hidden');
+    document.getElementById('gameContainer').classList.add('hidden');
+}
+
+function startNewGame() {
+    gameState = {
+        money: 50000,
+        reputation: 50,
+        developers: 3,
+        studioLevel: 1,
+        studioExp: 0,
+        day: 1,
+        projects: [],
+        completedGames: [],
+        nextProjectId: 1,
+        totalGamesReleased: 0,
+        totalMoneyEarned: 0,
+        bestGame: null,
+        office: {
+            wall: 'default',
+            floor: 'default',
+            decor: {
+                plant: false,
+                poster: false,
+                trophy: false,
+                console: false
+            }
+        }
+    };
+    
+    document.getElementById('mainMenu').classList.add('hidden');
+    document.getElementById('gameContainer').classList.remove('hidden');
+    
+    if (gameInterval) clearInterval(gameInterval);
+    startGameLoop();
+    updateUI();
+    applyOfficeCustomization();
+    addNews("Добро пожаловать в DEVZ! Начните с создания первой игры!");
+}
+
+function loadGame() {
+    const saved = localStorage.getItem('devz_save');
+    if (saved) {
+        gameState = JSON.parse(saved);
+        document.getElementById('mainMenu').classList.add('hidden');
+        document.getElementById('gameContainer').classList.remove('hidden');
+        if (gameInterval) clearInterval(gameInterval);
+        startGameLoop();
+        updateUI();
+        applyOfficeCustomization();
+        addNews("Игра загружена! Продолжаем разработку!");
+    } else {
+        alert("Нет сохранённой игры!");
     }
 }
 
-@keyframes slideInLeft {
-    from {
-        opacity: 0;
-        transform: translateX(-50px);
+function saveGame() {
+    localStorage.setItem('devz_save', JSON.stringify(gameState));
+    addNews("💾 Игра сохранена!");
+    showNotification("Игра сохранена!");
+}
+
+function showNotification(msg) {
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.innerHTML = msg;
+    notification.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #1a2a3e;
+        color: #00ff88;
+        padding: 10px 20px;
+        border-radius: 30px;
+        z-index: 3000;
+        animation: fadeInUp 0.3s ease-out;
+    `;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 2000);
+}
+
+// ========== ИГРОВОЙ ЦИКЛ ==========
+function startGameLoop() {
+    gameInterval = setInterval(() => {
+        gameTick();
+    }, 3000);
+}
+
+function gameTick() {
+    if (gameState.projects.length === 0) return;
+    
+    // Бонус скорости от декора офиса
+    let decorBonus = 0;
+    if (gameState.office.decor.plant) decorBonus += 0.05;
+    if (gameState.office.decor.poster) decorBonus += 0.05;
+    if (gameState.office.decor.trophy) decorBonus += 0.1;
+    if (gameState.office.decor.console) decorBonus += 0.1;
+    
+    let speed = gameState.developers * (0.7 + gameState.studioLevel * 0.1) * (1 + decorBonus);
+    speed = Math.min(30, speed);
+    
+    for (let project of gameState.projects) {
+        let increment = Math.floor(speed + Math.random() * 10);
+        project.progress = Math.min(project.maxProgress, project.progress + increment);
+        
+        if (project.progress >= project.maxProgress && !project.completed) {
+            completeProject(project);
+        }
     }
-    to {
-        opacity: 1;
-        transform: translateX(0);
+    
+    gameState.day++;
+    updateUI();
+    
+    if (settings.autosave && gameState.day % 3 === 0) {
+        saveGame();
     }
 }
 
-@keyframes slideInRight {
-    from {
-        opacity: 0;
-        transform: translateX(50px);
+function completeProject(project) {
+    project.completed = true;
+    
+    // Бонус репутации от декора
+    let repBonus = 0;
+    if (gameState.office.decor.trophy) repBonus += 5;
+    if (gameState.office.decor.console) repBonus += 3;
+    
+    const reward = Math.floor(project.expectedReward * (1 + gameState.reputation / 200));
+    const repGain = project.bonusRep + Math.floor(gameState.studioLevel / 2) + repBonus;
+    
+    gameState.money += reward;
+    gameState.reputation += repGain;
+    gameState.totalMoneyEarned += reward;
+    gameState.totalGamesReleased++;
+    
+    // Опыт студии
+    gameState.studioExp += Math.floor(project.maxProgress / 10);
+    checkLevelUp();
+    
+    // Лучшая игра
+    if (!gameState.bestGame || reward > gameState.bestGame.reward) {
+        gameState.bestGame = { name: project.name, reward: reward };
     }
-    to {
-        opacity: 1;
-        transform: translateX(0);
+    
+    gameState.completedGames.unshift({
+        id: project.id,
+        name: project.name,
+        genre: project.genre,
+        complexity: project.maxProgress,
+        reward: reward,
+        repGain: repGain,
+        dayCompleted: gameState.day
+    });
+    
+    addNews(`🏆 Игра "${project.name}" завершена! +${reward}$, +${repGain}⭐!`);
+    showNotification(`"${project.name}" готов! +${reward}$`);
+    
+    const index = gameState.projects.findIndex(p => p.id === project.id);
+    if (index !== -1) gameState.projects.splice(index, 1);
+    
+    updateUI();
+}
+
+function checkLevelUp() {
+    const expNeeded = gameState.studioLevel * 100;
+    if (gameState.studioExp >= expNeeded) {
+        gameState.studioLevel++;
+        gameState.studioExp -= expNeeded;
+        addNews(`🏢 СТУДИЯ ПОВЫШЕНА ДО ${gameState.studioLevel} УРОВНЯ! +1 слот проектов!`);
+        showNotification(`Студия достигла ${gameState.studioLevel} уровня!`);
+        updateUI();
     }
 }
 
-@keyframes glitch {
-    0% { transform: skew(0deg, 0deg); }
-    20% { transform: skew(2deg, 1deg); }
-    40% { transform: skew(-2deg, -1deg); }
-    60% { transform: skew(1deg, 2deg); }
-    80% { transform: skew(-1deg, -2deg); }
-    100% { transform: skew(0deg, 0deg); }
-}
-
-@keyframes typewriter {
-    from { width: 0; }
-    to { width: 100%; }
-}
-
-@keyframes blink {
-    50% { opacity: 0; }
-}
-
-/* ========== ЗАСТАВКА ========== */
-.splash-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #0a0c15 0%, #1a1f2e 100%);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    transition: opacity 0.8s;
-}
-
-.splash-content {
-    text-align: center;
-    padding: 2rem;
-    animation: fadeInUp 0.8s ease-out;
-}
-
-.glitch-wrapper {
-    position: relative;
-}
-
-.ascii-logo {
-    color: #00ff88;
-    font-size: 0.7rem;
-    line-height: 1.2;
-    text-shadow: 0 0 10px #00ff88;
-    margin-bottom: 2rem;
-    white-space: pre;
-    animation: glowPulse 2s infinite;
-}
-
-.ascii-logo.glitch {
-    animation: glitch 0.3s infinite;
-}
-
-.splash-madeby {
-    font-size: 1.5rem;
-    color: #ffaa44;
-    letter-spacing: 4px;
-    margin-bottom: 2rem;
-    font-weight: bold;
-}
-
-.pulse-text {
-    animation: glowPulse 1.5s infinite;
-}
-
-.loading-bar-container {
-    width: 400px;
-    height: 8px;
-    background: #2a2f3e;
-    border-radius: 10px;
-    margin: 20px auto;
-    overflow: hidden;
-    position: relative;
-}
-
-.loading-bar {
-    width: 0%;
-    height: 100%;
-    background: linear-gradient(90deg, #00ff88, #44aaff, #ffaa44);
-    transition: width 0.3s;
-    border-radius: 10px;
-    position: relative;
-    animation: shimmer 1.5s infinite linear;
-    background-size: 200% 100%;
-}
-
-.loading-glow {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle, rgba(0,255,136,0.3) 0%, transparent 70%);
-    filter: blur(4px);
-}
-
-.splash-text {
-    color: #8899aa;
-    font-size: 0.9rem;
-    margin-top: 20px;
-}
-
-.floating-dots span {
-    display: inline-block;
-    animation: float 1s ease-in-out infinite;
-    margin: 0 3px;
-    color: #44ffaa;
-    font-size: 20px;
-}
-
-.floating-dots span:nth-child(2) { animation-delay: 0.2s; }
-.floating-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-/* ========== ГЛАВНОЕ МЕНЮ ========== */
-.menu-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(ellipse at center, #1a1f2e 0%, #0a0c15 100%);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 900;
-}
-
-.menu-background {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-}
-
-.floating-particles {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background-image: radial-gradient(circle at 20% 40%, rgba(0,255,136,0.1) 1px, transparent 1px);
-    background-size: 40px 40px;
-    animation: float 20s linear infinite;
-}
-
-.menu-panel {
-    background: rgba(10, 14, 27, 0.95);
-    backdrop-filter: blur(10px);
-    border: 2px solid #2a3f5e;
-    border-radius: 40px;
-    padding: 2rem 3rem;
-    text-align: center;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 30px rgba(0,255,136,0.2);
-    min-width: 550px;
-    z-index: 1;
-    animation: fadeInUp 0.6s ease-out;
-}
-
-.menu-logo {
-    color: #44ffaa;
-    font-size: 0.5rem;
-    white-space: pre;
-    margin-bottom: 1rem;
-    animation: glowPulse 2s infinite;
-}
-
-.game-title {
-    font-size: 3rem;
-    color: #ffaa44;
-    text-shadow: 0 0 20px #ffaa44;
-    letter-spacing: 8px;
-    margin-bottom: 0.5rem;
-}
-
-.neon-text {
-    animation: glowPulse 1.5s infinite;
-}
-
-.game-subtitle {
-    color: #88aaff;
-    margin-bottom: 2rem;
-}
-
-.menu-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin: 2rem 0;
-}
-
-.menu-btn {
-    padding: 14px 30px;
-    font-size: 1.2rem;
-    font-family: monospace;
-    font-weight: bold;
-    background: linear-gradient(135deg, #1e2a3a, #16212e);
-    border: 1px solid #3a5a7a;
-    color: white;
-    cursor: pointer;
-    border-radius: 60px;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.menu-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transition: left 0.5s;
-}
-
-.menu-btn:hover::before {
-    left: 100%;
-}
-
-.menu-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 20px rgba(0,255,136,0.3);
-    border-color: #00ff88;
-}
-
-.menu-btn.primary {
-    background: linear-gradient(135deg, #2a4a6a, #1a3a5a);
-    border-color: #5a9aff;
-    box-shadow: 0 0 15px rgba(90,154,255,0.3);
-}
-
-.btn-icon {
-    margin-right: 10px;
-}
-
-.menu-footer {
-    margin-top: 2rem;
-    color: #556688;
-    font-size: 0.7rem;
-}
-
-/* ========== ОСНОВНАЯ ИГРА ========== */
-.game-container {
-    width: 100%;
-    height: 100vh;
-    background: #0c0f18;
-    display: flex;
-    flex-direction: column;
-    animation: fadeInUp 0.5s ease-out;
-}
-
-.top-bar {
-    background: linear-gradient(135deg, #050812, #0a0e1a);
-    padding: 12px 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 2px solid #2a3f5e;
-}
-
-.studio-name-header {
-    font-size: 1.3rem;
-    font-weight: bold;
-    color: #ffaa44;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.pulse-dot {
-    width: 10px;
-    height: 10px;
-    background: #00ff88;
-    border-radius: 50%;
-    display: inline-block;
-    animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(1.2); }
-}
-
-.resources {
-    display: flex;
-    gap: 30px;
-}
-
-.res-item {
-    background: #0a0e1a;
-    padding: 6px 15px;
-    border-radius: 40px;
-    font-weight: bold;
-    color: #ccddff;
-    position: relative;
-    cursor: help;
-    transition: transform 0.2s;
-}
-
-.res-item:hover {
-    transform: scale(1.05);
-}
-
-.res-item span {
-    color: #ffaa66;
-    font-size: 1.2rem;
-    margin-right: 5px;
-}
-
-.tooltip .tooltip-text {
-    visibility: hidden;
-    width: 120px;
-    background: #1a1f30;
-    color: #fff;
-    text-align: center;
-    border-radius: 6px;
-    padding: 5px;
-    position: absolute;
-    z-index: 1;
-    bottom: 125%;
-    left: 50%;
-    margin-left: -60px;
-    opacity: 0;
-    transition: opacity 0.3s;
-    font-size: 0.7rem;
-}
-
-.tooltip:hover .tooltip-text {
-    visibility: visible;
-    opacity: 1;
-}
-
-.small-exit {
-    background: #2a2a3e;
-    border: none;
-    padding: 6px 15px;
-    border-radius: 20px;
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.small-exit:hover {
-    background: #3a3a5e;
-    transform: scale(1.05);
-}
-
-/* Игровой лейаут */
-.game-layout {
-    display: flex;
-    flex: 1;
-    padding: 20px;
-    gap: 20px;
-    overflow: hidden;
-}
-
-.studio-panel {
-    flex: 1.5;
-    background: rgba(15, 19, 34, 0.95);
-    backdrop-filter: blur(4px);
-    border-radius: 20px;
-    padding: 20px;
-    border: 1px solid #2a3f5e;
-    overflow-y: auto;
-    animation: slideInLeft 0.5s ease-out;
-}
-
-.ai-panel {
-    flex: 1;
-    background: rgba(15, 19, 34, 0.95);
-    backdrop-filter: blur(4px);
-    border-radius: 20px;
-    padding: 20px;
-    border: 1px solid #2a3f5e;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    overflow-y: auto;
-    animation: slideInRight 0.5s ease-out;
-}
-
-.panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    border-bottom: 1px solid #2a3f5e;
-    padding-bottom: 10px;
-}
-
-.panel-header h2 {
-    color: #88ccff;
-    font-size: 1.3rem;
-}
-
-.studio-level-badge {
-    background: linear-gradient(135deg, #ffaa44, #ff8844);
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: bold;
-    animation: bounce 2s infinite;
-}
-
-/* ========== ОФИС (КАСТОМИЗАЦИЯ) ========== */
-.office-customization {
-    background: #080c18;
-    border-radius: 15px;
-    padding: 15px;
-    margin-bottom: 20px;
-}
-
-.office-customization h3 {
-    color: #ffaa66;
-    margin-bottom: 15px;
-    font-size: 0.9rem;
-}
-
-.office-preview {
-    width: 100%;
-    height: 150px;
-    background: #0a0e1a;
-    border-radius: 15px;
-    margin-bottom: 15px;
-    position: relative;
-    overflow: hidden;
-    border: 2px solid #2a3f5e;
-    transition: all 0.3s;
-}
-
-.office-wall {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 100px;
-    transition: background 0.3s;
-}
-
-.office-wall.default { background: linear-gradient(135deg, #3a4a6a, #2a3a5a); }
-.office-wall.cyber { background: linear-gradient(135deg, #6a2a8a, #4a1a6a); box-shadow: inset 0 0 20px #ff00ff33; }
-.office-wall.space { background: radial-gradient(circle at 30% 40%, #1a1a3a, #0a0a2a); }
-.office-wall.space::after { content: '✨'; position: absolute; top: 20px; left: 20px; font-size: 20px; animation: float 3s infinite; }
-.office-wall.retro { background: repeating-linear-gradient(45deg, #4a3a2a, #4a3a2a 20px, #3a2a1a 20px, #3a2a1a 40px); }
-
-.office-floor {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 50px;
-    transition: background 0.3s;
-}
-
-.office-floor.default { background: #5a4a3a; }
-.office-floor.modern { background: #3a4a5a; }
-.office-floor.neon { background: #1a3a2a; box-shadow: inset 0 0 10px #00ff88; }
-
-.office-decor {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    display: flex;
-    gap: 10px;
-    z-index: 10;
-}
-
-.decor-item {
-    font-size: 30px;
-    cursor: pointer;
-    transition: transform 0.2s;
-    filter: drop-shadow(0 2px 4px black);
-}
-
-.decor-item:hover {
-    transform: scale(1.1);
-}
-
-.office-controls {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.control-group {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-}
-
-.control-group label {
-    color: #88aaff;
-    font-size: 0.75rem;
-    min-width: 45px;
-}
-
-.office-btn {
-    background: #1a2a3e;
-    border: none;
-    padding: 5px 12px;
-    border-radius: 20px;
-    color: white;
-    cursor: pointer;
-    font-size: 0.7rem;
-    transition: all 0.2s;
-}
-
-.office-btn:hover {
-    background: #2a4a6a;
-    transform: scale(1.05);
-}
-
-.decor-buy {
-    background: #2a4a3e;
-    border: none;
-    padding: 5px 12px;
-    border-radius: 20px;
-    color: white;
-    cursor: pointer;
-    font-size: 0.7rem;
-}
-
-.decor-buy:hover {
-    background: #3a6a5e;
-}
-
-/* ========== СТУДИЯ ========== */
-.studio-card {
-    background: #080c18;
-    border-radius: 15px;
-    padding: 15px;
-    margin-bottom: 20px;
-}
-
-.studio-card p {
-    margin: 8px 0;
-    color: #bbccff;
-}
-
-.upgrade-cost {
-    color: #ffaa66;
-    font-size: 0.8rem;
-}
-
-.exp-bar {
-    margin-top: 12px;
-    height: 8px;
-    background: #1a1f30;
-    border-radius: 10px;
-    overflow: hidden;
-    position: relative;
-}
-
-.exp-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #ffaa44, #ff8844);
-    width: 0%;
-    transition: width 0.5s;
-    border-radius: 10px;
-}
-
-.exp-text {
-    position: absolute;
-    top: -18px;
-    right: 0;
-    font-size: 0.6rem;
-    color: #8899aa;
-}
-
-.studio-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 25px;
-}
-
-.action-btn {
-    background: linear-gradient(135deg, #1a2a3e, #121e2e);
-    border: 1px solid #2a4a6a;
-    padding: 8px 16px;
-    border-radius: 30px;
-    color: white;
-    cursor: pointer;
-    font-family: monospace;
-    transition: all 0.2s;
-}
-
-.action-btn:hover {
-    background: linear-gradient(135deg, #2a4a6a, #1a3a5a);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-}
-
-.bounce-on-click:active {
-    animation: bounce 0.2s ease;
-}
-
-.projects-section h3 {
-    color: #aaddff;
-    margin-bottom: 15px;
-}
-
-.projects-list {
-    min-height: 150px;
-    max-height: 300px;
-    overflow-y: auto;
-    margin-bottom: 15px;
-}
-
-.project-card {
-    background: linear-gradient(135deg, #0a0e1c, #0c1020);
-    border-radius: 12px;
-    padding: 12px;
-    margin-bottom: 10px;
-    border-left: 4px solid #44ff88;
-    transition: all 0.2s;
-    animation: fadeInUp 0.3s ease-out;
-}
-
-.project-card:hover {
-    transform: translateX(5px);
-    border-left-color: #ffaa44;
-}
-
-.project-name {
-    font-weight: bold;
-    color: #ffdd99;
-}
-
-.project-progress {
-    background: #1e2438;
-    border-radius: 20px;
-    height: 12px;
-    margin: 8px 0;
-    overflow: hidden;
-}
-
-.progress-fill {
-    width: 0%;
-    height: 100%;
-    background: linear-gradient(90deg, #44ff88, #88ff44);
-    transition: width 0.3s;
-    position: relative;
-    overflow: hidden;
-}
-
-.progress-fill::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-    animation: shimmer 1.5s infinite;
-}
-
-.create-game-btn {
-    width: 100%;
-    background: linear-gradient(135deg, #2a5f3e, #1a4a2e);
-    border: none;
-    padding: 12px;
-    border-radius: 30px;
-    color: white;
-    font-weight: bold;
-    cursor: pointer;
-    margin-top: 10px;
-    transition: all 0.3s;
-}
-
-.create-game-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 20px rgba(0,255,136,0.3);
-}
-
-.pulse-btn {
-    animation: pulse 2s infinite;
-}
-
-/* ========== AI ПАНЕЛЬ ========== */
-.ai-card {
-    background: linear-gradient(135deg, #080c18, #0a1020);
-    border-radius: 15px;
-    padding: 15px;
-    transition: all 0.3s;
-}
-
-.ai-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-}
-
-.glass-effect {
-    backdrop-filter: blur(10px);
-    background: rgba(8, 12, 24, 0.8);
-}
-
-.ai-card h3 {
-    color: #88aaff;
-    margin-bottom: 12px;
-    font-size: 1rem;
-}
-
-.ai-status {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 0.7rem;
-    color: #00ff88;
-}
-
-.ai-dot {
-    width: 8px;
-    height: 8px;
-    background: #00ff88;
-    border-radius: 50%;
-    display: inline-block;
-    animation: pulse 1s infinite;
-}
-
-.game-select {
-    width: 100%;
-    padding: 8px;
-    background: #1a1f30;
-    border: 1px solid #3a5a7a;
-    color: white;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    cursor: pointer;
-}
-
-.ai-btn {
-    width: 100%;
-    background: linear-gradient(135deg, #3a5a8a, #2a4a7a);
-    border: none;
-    padding: 8px;
-    border-radius: 20px;
-    color: white;
-    cursor: pointer;
-    margin: 10px 0;
-    transition: all 0.2s;
-    position: relative;
-}
-
-.ai-btn:hover {
-    transform: scale(1.02);
-    box-shadow: 0 3px 10px rgba(58,90,138,0.5);
-}
-
-.spinner {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    margin-right: 8px;
-}
-
-.ai-btn:active .spinner {
-    animation: spin 0.5s linear;
-}
-
-.analysis-result {
-    background: #050810;
-    padding: 10px;
-    border-radius: 10px;
-    font-size: 0.8rem;
-    color: #aaccff;
-    max-height: 120px;
-    overflow-y: auto;
-}
-
-.analysis-placeholder {
-    color: #667799;
-    text-align: center;
-}
-
-.news-feed {
-    background: #050810;
-    padding: 10px;
-    border-radius: 10px;
-    font-size: 0.75rem;
-    max-height: 120px;
-    overflow-y: auto;
-}
-
-.news-item {
-    padding: 5px;
-    border-bottom: 1px solid #1a2a4a;
-    color: #bbddff;
-}
-
-.fade-in {
-    animation: fadeInUp 0.3s ease-out;
-}
-
-.tips-box {
-    background: #050810;
-    padding: 10px;
-    border-radius: 10px;
-    font-size: 0.8rem;
-    color: #ffdd99;
-    margin-bottom: 10px;
-    min-height: 60px;
-}
-
-.typing-effect {
-    overflow: hidden;
-    white-space: nowrap;
-    animation: typewriter 2s steps(40, end);
-}
-
-.small-ai-btn {
-    background: linear-gradient(135deg, #2a3a5a, #1a2a4a);
-    border: none;
-    padding: 5px 12px;
-    border-radius: 20px;
-    color: white;
-    cursor: pointer;
-    font-size: 0.7rem;
-    transition: all 0.2s;
-}
-
-.small-ai-btn:hover {
-    transform: scale(1.05);
-}
-
-.empty-projects {
-    text-align: center;
-    color: #667799;
-    padding: 20px;
-}
-
-.shimmer {
-    background: linear-gradient(90deg, #1a1f30 25%, #2a2f40 50%, #1a1f30 75%);
-    background-size: 200% 100%;
-    animation: shimmer 2s infinite;
-    border-radius: 10px;
-}
-
-/* ========== СТАТИСТИКА ========== */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-}
-
-.stat-card {
-    text-align: center;
-    background: #050810;
-    padding: 8px;
-    border-radius: 10px;
-}
-
-.stat-value {
-    display: block;
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: #ffaa44;
-}
-
-.stat-label {
-    font-size: 0.6rem;
-    color: #88aaff;
-}
-
-/* ========== МОДАЛЬНЫЕ ОКНА ========== */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.85);
-    backdrop-filter: blur(8px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 2000;
-}
-
-.modal-content {
-    background: linear-gradient(135deg, #0f1422, #0a0e1a);
-    border: 2px solid #3a6a9a;
-    border-radius: 30px;
-    padding: 30px;
-    min-width: 400px;
-    max-width: 500px;
-    position: relative;
-}
-
-.pop-in {
-    animation: bounce 0.3s ease;
-}
-
-.close-modal {
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    font-size: 28px;
-    cursor: pointer;
-    color: #ff8866;
-    transition: transform 0.2s;
-}
-
-.close-modal:hover {
-    transform: rotate(90deg);
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    color: #aaccff;
-}
-
-.form-group input, .form-group select {
-    width: 100%;
-    padding: 10px;
-    background: #1a1f30;
-    border: 1px solid #3a5a7a;
-    color: white;
-    border-radius: 10px;
-    font-family: monospace;
-}
-
-.shake-focus:focus {
-    animation: glitch 0.2s ease;
-}
-
-.modal-btn {
-    width: 100%;
-    padding: 12px;
-    background: linear-gradient(135deg, #2a6a4a, #1a5a3a);
-    border: none;
-    border-radius: 30px;
-    color: white;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.modal-btn:hover {
-    transform: scale(1.02);
-    box-shadow: 0 5px 15px rgba(42,106,74,0.5);
-}
-
-.settings-btn {
-    padding: 8px 20px;
-    background: #2a3a5a;
-    border: none;
-    border-radius: 20px;
-    color: white;
-    cursor: pointer;
-    margin-left: 10px;
-}
-
-.settings-btn.danger {
-    background: #6a2a2a;
-}
-
-.credits-text {
-    color: #bbccff;
-    line-height: 1.6;
-}
-
-.hidden {
-    display: none;
-}
-
-/* ========== SCROLLBAR ========== */
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: #0a0e1a;
-    border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #2a4a6a, #1a3a5a);
-    border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #3a6a8a;
-}
+function createNewGame(name, genre, complexity) {
+    const maxSlots = 2 + Math.floor(gameState.studioLevel / 2);
+    if (gameState.projects.length >= maxSlots) {
+        addNews("❌ Нет свободных слотов! Улучшите студию!", true);
+        showNotification("Нет свободных слотов!");
+        return false;
+    }
+    
+    const baseReward = Math.floor(complexity * 2.5 + Math.random() * 200);
+    const baseRep = Math.floor(complexity / 15) + 5;
+    
+    const newProject = {
+        id: gameState.nextProjectId++,
+        name: name || `Игра #${gameState.nextProjectId}`,
+        genre: genre,
+        progress: 0,
+        maxProgress: complexity,
+        expectedReward: baseReward,
+        bonusRep: baseRep,
+        completed: false
+    };
+    
+    gameState.projects.push(newProject);
+    addNews(`✨ Новый проект: "${newProject.name}" (${genre}), сложность ${complexity}`);
+    showNotification(`Создана игра "${newProject.name}"!`);
+    updateUI();
+    return true;
+}
+
+// ========== AI АНАЛИЗ ==========
+function analyzeGame(gameId) {
+    const game = gameState.completedGames.find(g => g.id == gameId);
+    if (!game) {
+        document.getElementById('analysisResult').innerHTML = "❌ Игра не найдена!";
+        return;
+    }
+    
+    // Динамический анализ
+    let quality = "🌟 ШЕДЕВР!";
+    let advice = "Эта игра войдёт в историю!";
+    let rating = Math.floor(Math.random() * 30 + 70);
+    let emoji = "🏆";
+    
+    if (game.complexity > 200 && game.reward > 800) {
+        quality = "🏆 БЛОКБАСТЕР!";
+        advice = "Отличная работа! Игроки в восторге! Продолжайте в том же духе!";
+        rating = 95 + Math.floor(Math.random() * 5);
+        emoji = "🔥";
+    } else if (game.reward < 300) {
+        quality = "⚠️ СРЕДНЯК";
+        advice = "Попробуйте увеличить сложность или выбрать другой жанр. RPG сейчас в тренде!";
+        rating = 50 + Math.floor(Math.random() * 15);
+        emoji = "📉";
+    } else if (game.genre === "RPG" && game.reward > 500) {
+        quality = "🎲 КУЛЬТОВАЯ RPG!";
+        advice = "RPG всегда в топе! Продолжайте в том же духе! Игроки обожают сюжет!";
+        rating = 88 + Math.floor(Math.random() * 8);
+        emoji = "⚔️";
+    } else if (game.genre === "Шутер") {
+        quality = "🔫 ЭКШЕН-ХИТ!";
+        advice = "Шутеры продаются отлично! Добавьте мультиплеер в следующий раз!";
+        rating = 75 + Math.floor(Math.random() * 15);
+        emoji = "💥";
+    } else {
+        rating = 65 + Math.floor(Math.random() * 25);
+    }
+    
+    // Анимация анализа
+    const resultDiv = document.getElementById('analysisResult');
+    resultDiv.innerHTML = '<div class="analysis-placeholder">🤖 AI анализирует игру...</div>';
+    setTimeout(() => {
+        const analysisHTML = `
+            <div style="animation: fadeInUp 0.3s;">
+                <strong>🤖 AI Анализ:</strong><br>
+                ${emoji} Качество: ${quality}<br>
+                ⭐ Рейтинг: ${rating}/100<br>
+                💡 Совет: ${advice}<br>
+                🎮 Жанр ${game.genre} показал себя ${rating > 75 ? "отлично ✅" : "неплохо 🟡"}.
+                <br><br>
+                📊 Продажи: ${game.reward}$ | +${game.repGain} репутации
+            </div>
+        `;
+        resultDiv.innerHTML = analysisHTML;
+        addNews(`AI проанализировал "${game.name}": ${quality} (${rating}/100)`);
+    }, 800);
+}
+
+function generateNews() {
+    const newsList = [
+        "🎮 Новый хит от конкурентов!",
+        "🤖 AI предсказывает рост рынка инди-игр на 30%",
+        "💥 Студия N признана лучшей в этом месяце!",
+        "📈 Продажи игр выросли на 20% в этом квартале",
+        "⚡ Новая технология ускоряет разработку игр",
+        "🌟 Ваша студия в топе новостей игровой индустрии!",
+        "🎯 Киберспорт набирает обороты - создайте кибер-игру!",
+        "💎 Инвесторы заинтересовались вашей студией!"
+    ];
+    return newsList[Math.floor(Math.random() * newsList.length)];
+}
+
+function refreshNews() {
+    const newsItem = generateNews();
+    addNews(newsItem);
+    const newsFeed = document.getElementById('newsFeed');
+    const newNews = document.createElement('div');
+    newNews.className = 'news-item fade-in';
+    newNews.innerHTML = `📰 ${newsItem}`;
+    newsFeed.prepend(newNews);
+    if (newsFeed.children.length > 6) newsFeed.removeChild(newsFeed.lastChild);
+}
+
+function addNews(text, isError = false) {
+    const newsFeed = document.getElementById('newsFeed');
+    const newNews = document.createElement('div');
+    newNews.className = 'news-item fade-in';
+    newNews.style.color = isError ? '#ffaa88' : '#bbddff';
+    newNews.innerHTML = `${isError ? '⚠️' : '📰'} ${text}`;
+    newsFeed.prepend(newNews);
+    if (newsFeed.children.length > 7) newsFeed.removeChild(newsFeed.lastChild);
+}
+
+function getAITip() {
+    const tips = [
+        "💡 Нанимайте разработчиков - они ускоряют создание игр до 2x!",
+        "🎯 Улучшайте студию для большего количества параллельных проектов",
+        "📊 Сложные игры приносят больше денег и репутации",
+        "🤖 AI анализирует ваши игры - используйте это для улучшения!",
+        "💰 Маркетинг повышает репутацию студии на 5-15 пунктов",
+        "⭐ Высокая репутация = больше денег за каждую игру",
+        "🎮 RPG и Стратегии часто приносят больше наград",
+        "🏆 Украшайте офис - это даёт бонус к скорости разработки!",
+        "🌵 Растение в офисе +5% к скорости",
+        "🖼️ Постер +5% к вдохновению разработчиков",
+        "🏆 Трофей +10% к репутации от игр",
+        "🎮 Консоль +10% к скорости создания игр"
+    ];
+    const tip = tips[Math.floor(Math.random() * tips.length)];
+    const tipsBox = document.getElementById('aiTips');
+    tipsBox.innerHTML = tip;
+    tipsBox.style.animation = 'none';
+    setTimeout(() => tipsBox.style.animation = 'typewriter 1s steps(40, end)', 10);
+}
+
+// ========== ДЕЙСТВИЯ СТУДИИ ==========
+function hireDeveloper() {
+    const cost = 2000;
+    if (gameState.money >= cost) {
+        gameState.money -= cost;
+        gameState.developers++;
+        addNews(`👨‍💻 Нанят разработчик! Теперь их ${gameState.developers}`);
+        showNotification(`Нанят разработчик! +1 к скорости`);
+        updateUI();
+        // Анимация
+        const btn = document.getElementById('hireDevBtn');
+        btn.style.transform = 'scale(0.95)';
+        setTimeout(() => btn.style.transform = 'scale(1)', 100);
+    } else {
+        addNews("💰 Не хватает денег на найм!", true);
+    }
+}
+
+function upgradeStudio() {
+    const cost = 5000 + gameState.studioLevel * 1000;
+    if (gameState.money >= cost) {
+        gameState.money -= cost;
+        gameState.studioLevel++;
+        addNews(`🏢 Студия улучшена до уровня ${gameState.studioLevel}! Слотов: ${2 + Math.floor(gameState.studioLevel/2)}`);
+        showNotification(`Студия улучшена до ${gameState.studioLevel} уровня!`);
+        updateUI();
+    } else {
+        addNews(`💰 Не хватает ${cost}$ на апгрейд!`, true);
+    }
+}
+
+function doMarketing() {
+    const cost = 1000;
+    if (gameState.money >= cost) {
+        gameState.money -= cost;
+        const gain = 8 + Math.floor(Math.random() * 10);
+        gameState.reputation += gain;
+        addNews(`📢 Маркетинг повысил репутацию на +${gain}!`);
+        showNotification(`Репутация +${gain}!`);
+        updateUI();
+    } else {
+        addNews("💰 Не хватает на маркетинг!", true);
+    }
+}
+
+// ========== КАСТОМИЗАЦИЯ ОФИСА ==========
+function applyOfficeCustomization() {
+    const wallDiv = document.getElementById('officeWall');
+    const floorDiv = document.getElementById('officeFloor');
+    
+    wallDiv.className = `office-wall ${gameState.office.wall}`;
+    floorDiv.className = `office-floor ${gameState.office.floor}`;
+    
+    // Показываем купленный декор
+    const decorContainer = document.getElementById('officeDecor');
+    if (decorContainer) {
+        decorContainer.innerHTML = '';
+        for (const [decor, owned] of Object.entries(gameState.office.decor)) {
+            if (owned) {
+                const icon = { plant: '🌵', poster: '🖼️', trophy: '🏆', console: '🎮' }[decor];
+                const div = document.createElement('div');
+                div.className = 'decor-item';
+                div.setAttribute('data-decor', decor);
+                div.innerHTML = icon;
+                decorContainer.appendChild(div);
+            }
+        }
+    }
+}
+
+function buyDecor(decorType) {
+    const prices = { plant: 500, poster: 800, trophy: 1500, console: 2000 };
+    const price = prices[decorType];
+    
+    if (gameState.office.decor[decorType]) {
+        addNews(`У вас уже есть этот предмет декора!`, true);
+        return;
+    }
+    
+    if (gameState.money >= price) {
+        gameState.money -= price;
+        gameState.office.decor[decorType] = true;
+        applyOfficeCustomization();
+        addNews(`🎨 Куплен декор: ${decorType}! +бонус к разработке!`);
+        showNotification(`Куплен ${decorType}! +бонус`);
+        updateUI();
+    } else {
+        addNews(`💰 Не хватает ${price}$ на покупку декора!`, true);
+    }
+}
+
+function changeWall(type) {
+    gameState.office.wall = type;
+    applyOfficeCustomization();
+    addNews(`Стены офиса изменены на ${type}`);
+}
+
+function changeFloor(type) {
+    gameState.office.floor = type;
+    applyOfficeCustomization();
+    addNews(`Пол офиса изменён на ${type}`);
+}
+
+// ========== UI ОБНОВЛЕНИЕ ==========
+function updateUI() {
+    document.getElementById('money').innerText = Math.floor(gameState.money);
+    document.getElementById('reputation').innerText = Math.floor(gameState.reputation);
+    document.getElementById('devCount').innerText = gameState.developers;
+    document.getElementById('projectCount').innerText = gameState.projects.length;
+    document.getElementById('day').innerText = gameState.day;
+    document.getElementById('studioLvl').innerText = gameState.studioLevel;
+    document.getElementById('studioLevelBadge').innerHTML = `Lv.${gameState.studioLevel}`;
+    document.getElementById('maxSlots').innerText = 2 + Math.floor(gameState.studioLevel / 2);
+    
+    let decorBonus = 0;
+    if (gameState.office.decor.plant) decorBonus += 0.05;
+    if (gameState.office.decor.poster) decorBonus += 0.05;
+    if (gameState.office.decor.trophy) decorBonus += 0.1;
+    if (gameState.office.decor.console) decorBonus += 0.1;
+    
+    const speed = (gameState.developers * (0.7 + gameState.studioLevel * 0.1) * (1 + decorBonus)).toFixed(1);
+    document.getElementById('devSpeed').innerHTML = Math.min(30, speed);
+    
+    // Опыт студии
+    const expNeeded = gameState.studioLevel * 100;
+    const expPercent = (gameState.studioExp / expNeeded) * 100;
+    document.getElementById('expFill').style.width = `${Math.min(100, expPercent)}%`;
+    
+    // Статистика
+    document.getElementById('totalGames').innerText = gameState.totalGamesReleased;
+    document.getElementById('totalEarned').innerText = Math.floor(gameState.totalMoneyEarned);
+    document.getElementById('bestGame').innerText = gameState.bestGame ? gameState.bestGame.name.slice(0, 10) : '-';
+    
+    // Обновление списка проектов
+    const projectsList = document.getElementById('projectsList');
+    if (gameState.projects.length === 0) {
+        projectsList.innerHTML = '<div class="empty-projects shimmer">✨ Нет проектов. Создайте игру! ✨</div>';
+    } else {
+        projectsList.innerHTML = '';
+        for (let p of gameState.projects) {
+            const percent = (p.progress / p.maxProgress) * 100;
+            projectsList.innerHTML += `
+                <div class="project-card">
+                    <div class="project-name">🎮 ${escapeHtml(p.name)} (${p.genre})</div>
+                    <div class="project-progress"><div class="progress-fill" style="width: ${percent}%"></div></div>
+                    <div style="font-size:0.7rem;">📊 ${Math.floor(p.progress)}/${p.maxProgress} | 💰 ~${p.expectedReward}$</div>
+                </div>
+            `;
+        }
+    }
+    
+    // Обновление селекта для анализа
+    const select = document.getElementById('gameToAnalyze');
+    if (gameState.completedGames.length === 0) {
+        select.innerHTML = '<option value="">Нет завершённых игр</option>';
+    } else {
+        select.innerHTML = '<option value="">-- Выберите игру для AI анализа --</option>' + 
+            gameState.completedGames.map(g => `<option value="${g.id}">🎮 ${escapeHtml(g.name)} (${g.genre}) - ${g.reward}$</option>`).join('');
+    }
+}
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
+// ========== НАСТРОЙКИ ==========
+function toggleSound() { settings.sound = !settings.sound; updateSettingsButton(); saveSettings(); }
+function toggleAnimations() { settings.animations = !settings.animations; updateSettingsButton(); saveSettings(); }
+function toggleAutosave() { settings.autosave = !settings.autosave; updateSettingsButton(); saveSettings(); }
+function toggleParticles() { settings.particles = !settings.particles; updateSettingsButton(); saveSettings(); }
+
+function updateSettingsButton() {
+    const soundBtn = document.getElementById('toggleSoundBtn');
+    const animBtn = document.getElementById('toggleAnimationsBtn');
+    const autoBtn = document.getElementById('toggleAutosaveBtn');
+    const particleBtn = document.getElementById('toggleParticlesBtn');
+    if (soundBtn) soundBtn.innerText = settings.sound ? "Включен 🔊" : "Выключен 🔇";
+    if (animBtn) animBtn.innerText = settings.animations ? "Включены ✨" : "Выключены ⚡";
+    if (autoBtn) autoBtn.innerText = settings.autosave ? "Включено 💾" : "Выключено ⏸️";
+    if (particleBtn) particleBtn.innerText = settings.particles ? "Включены 🎆" : "Выключены 🚫";
+}
+
+function saveSettings() {
+    localStorage.setItem('devz_settings', JSON.stringify(settings));
+}
+
+function loadSettings() {
+    const saved = localStorage.getItem('devz_settings');
+    if (saved) {
+        const loaded = JSON.parse(saved);
+        settings = { ...settings, ...loaded };
+    }
+    updateSettingsButton();
+}
+
+function resetGame() {
+    if (confirm("ВСЕ ДАННЫЕ БУДУТ УДАЛЕНЫ! Вы уверены?")) {
+        localStorage.removeItem('devz_save');
+        startNewGame();
+        document.getElementById('settingsModal').classList.add('hidden');
+    }
+}
+
+// ========== ИНИЦИАЛИЗАЦИЯ СОБЫТИЙ ==========
+function initEventListeners() {
+    document.getElementById('newGameBtn').onclick = () => startNewGame();
+    document.getElementById('loadGameBtn').onclick = () => loadGame();
+    document.getElementById('settingsMenuBtn').onclick = () => document.getElementById('settingsModal').classList.remove('hidden');
+    document.getElementById('creditsBtn').onclick = () => document.getElementById('creditsModal').classList.remove('hidden');
+    document.getElementById('menuFromGameBtn').onclick = () => showMainMenu();
+    document.getElementById('hireDevBtn').onclick = () => hireDeveloper();
+    document.getElementById('upgradeStudioBtn').onclick = () => upgradeStudio();
+    document.getElementById('marketingBtn').onclick = () => doMarketing();
+    document.getElementById('createGameBtn').onclick = () => document.getElementById('createGameModal').classList.remove('hidden');
+    document.getElementById('analyzeGameBtn').onclick = () => {
+        const select = document.getElementById('gameToAnalyze');
+        if (select.value) analyzeGame(parseInt(select.value));
+        else alert("Выберите игру для анализа!");
+    };
+    document.getElementById('refreshNewsBtn').onclick = () => refreshNews();
+    document.getElementById('getTipBtn').onclick = () => getAITip();
+    
+    // Кастомизация офиса
+    document.querySelectorAll('[data-wall]').forEach(btn => {
+        btn.onclick = () => changeWall(btn.getAttribute('data-wall'));
+    });
+    document.querySelectorAll('[data-floor]').forEach(btn => {
+        btn.onclick = () => changeFloor(btn.getAttribute('data-floor'));
+    });
+    document.querySelectorAll('.decor-buy').forEach(btn => {
+        btn.onclick = () => buyDecor(btn.getAttribute('data-decor'));
+    });
+    
+    // Модальные окна
+    document.querySelectorAll('.close-modal').forEach(btn => {
+        btn.onclick = function() { this.closest('.modal').classList.add('hidden'); };
+    });
+    
+    document.getElementById('toggleSoundBtn').onclick = toggleSound;
+    document.getElementById('toggleAnimationsBtn').onclick = toggleAnimations;
+    document.getElementById('toggleAutosaveBtn').onclick = toggleAutosave;
+    document.getElementById('toggleParticlesBtn').onclick = toggleParticles;
+    document.getElementById('resetGameBtn').onclick = resetGame;
+    
+    // Создание игры
+    document.getElementById('confirmCreateGame').onclick = () => {
+        const name = document.getElementById('gameName').value || "Безымянный проект";
+        const genre = document.getElementById('gameGenre').value;
+        const complexity = parseInt(document.getElementById('gameComplexity').value);
+        createNewGame(name, genre, complexity);
+        document.getElementById('createGameModal').classList.add('hidden');
+        document.getElementById('gameName').value = '';
+    };
+    
+    document.getElementById('gameComplexity').oninput = function() {
+        document.getElementById('complexityValue').innerText = this.value;
+    };
+}
+
+initEventListeners();
+updateSettingsButton();
