@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>DEVZ - Game Studio Simulator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- ========== ЗАСТАВКА (SPLASH) ========== -->
+    <div id="splashScreen" class="splash-overlay">
+        <div class="splash-content">
+            <pre class="ascii-logo">
+╔═══════════════════════════════════════╗
+║                                       ║
+║      ██████╗ ███████╗██╗   ██╗███████╗ ║
+║      ██╔══██╗██╔════╝██║   ██║╚══███╔╝ ║
+║      ██║  ██║█████╗  ██║   ██║  ███╔╝  ║
+║      ██║  ██║██╔══╝  ╚██╗ ██╔╝ ███╔╝   ║
+║      ██████╔╝███████╗ ╚████╔╝ ███████╗ ║
+║      ╚═════╝ ╚══════╝  ╚═══╝  ╚══════╝ ║
+║                                       ║
+║         GAME STUDIO SIMULATOR         ║
+║              v1.0                     ║
+║                                       ║
+║        🎮  🖥️  👾  💻  🕹️            ║
+║                                       ║
+╚═══════════════════════════════════════╝
+            </pre>
+            <div class="splash-madeby">Made by Studio N</div>
+            <div class="loading-bar-container">
+                <div class="loading-bar" id="loadingBar"></div>
+            </div>
+            <p class="splash-text" id="splashText">Загрузка движка...</p>
+        </div>
+    </div>
+
+    <!-- ========== ГЛАВНОЕ МЕНЮ ========== -->
+    <div id="mainMenu" class="menu-container hidden">
+        <div class="menu-background"></div>
+        <div class="menu-panel">
+            <pre class="menu-logo">
+╔═══════════════════════════════════════╗
+║      ██████╗ ███████╗██╗   ██╗███████╗ ║
+║      ██╔══██╗██╔════╝██║   ██║╚══███╔╝ ║
+║      ██║  ██║█████╗  ██║   ██║  ███╔╝  ║
+║      ██║  ██║██╔══╝  ╚██╗ ██╔╝ ███╔╝   ║
+║      ██████╔╝███████╗ ╚████╔╝ ███████╗ ║
+║      ╚═════╝ ╚══════╝  ╚═══╝  ╚══════╝ ║
+╚═══════════════════════════════════════╝
+            </pre>
+            <h1 class="game-title">DEVZ</h1>
+            <p class="game-subtitle">Симулятор игровой студии</p>
+            
+            <div class="menu-buttons">
+                <button class="menu-btn primary" id="newGameBtn">🎮 НОВАЯ ИГРА</button>
+                <button class="menu-btn" id="loadGameBtn">💾 ЗАГРУЗИТЬ</button>
+                <button class="menu-btn" id="settingsMenuBtn">⚙️ НАСТРОЙКИ</button>
+                <button class="menu-btn" id="creditsBtn">📜 ОБ ИГРЕ</button>
+            </div>
+            
+            <div class="menu-footer">
+                <p>© 2026 Studio N | AI Analysis System</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== ОСНОВНАЯ ИГРА ========== -->
+    <div id="gameContainer" class="game-container hidden">
+        <!-- Верхняя панель ресурсов -->
+        <div class="top-bar">
+            <div class="studio-name-header">🎮 DEVZ</div>
+            <div class="resources">
+                <div class="res-item">💰 <span id="money">50000</span>$</div>
+                <div class="res-item">⭐ <span id="reputation">50</span> реп</div>
+                <div class="res-item">👥 <span id="devCount">3</span> дев</div>
+                <div class="res-item">🎮 <span id="projectCount">0</span> проект</div>
+                <div class="res-item">📅 День <span id="day">1</span></div>
+            </div>
+            <button id="menuFromGameBtn" class="small-exit">🏠 Меню</button>
+        </div>
+
+        <!-- Основное игровое поле -->
+        <div class="game-layout">
+            <!-- ЛЕВАЯ ПАНЕЛЬ: СТУДИЯ -->
+            <div class="studio-panel">
+                <div class="panel-header">
+                    <h2>🏢 МОЯ СТУДИЯ</h2>
+                </div>
+                <div class="studio-card">
+                    <p><strong>Название:</strong> <span id="studioName">Studio N</span></p>
+                    <p><strong>Уровень:</strong> <span id="studioLvl">1</span> 
+                        <span class="upgrade-cost" id="upgradeCostInfo">(апгрейд: 5000$)</span>
+                    </p>
+                    <p><strong>Слотов проектов:</strong> <span id="maxSlots">2</span></p>
+                    <p><strong>Скорость разработки:</strong> <span id="devSpeed">1.0</span>x</p>
+                </div>
+                
+                <div class="studio-actions">
+                    <button id="hireDevBtn" class="action-btn">👨‍💻 Нанять (2000$)</button>
+                    <button id="upgradeStudioBtn" class="action-btn">📈 Апгрейд студии</button>
+                    <button id="marketingBtn" class="action-btn">📢 Маркетинг (1000$)</button>
+                </div>
+
+                <div class="projects-section">
+                    <h3>📋 АКТИВНЫЕ ПРОЕКТЫ</h3>
+                    <div id="projectsList" class="projects-list">
+                        <div class="empty-projects">Нет проектов. Создайте игру!</div>
+                    </div>
+                    <button id="createGameBtn" class="create-game-btn">✨ СОЗДАТЬ НОВУЮ ИГРУ</button>
+                </div>
+            </div>
+
+            <!-- ПРАВАЯ ПАНЕЛЬ: AI АНАЛИТИКА И НОВОСТИ -->
+            <div class="ai-panel">
+                <div class="panel-header">
+                    <h2>🤖 AI АНАЛИТИК</h2>
+                </div>
+                
+                <!-- AI анализ готовой игры -->
+                <div class="ai-card">
+                    <h3>📊 Анализ игры</h3>
+                    <p>Выберите завершённую игру для анализа</p>
+                    <select id="gameToAnalyze" class="game-select">
+                        <option value="">Нет завершённых игр</option>
+                    </select>
+                    <button id="analyzeGameBtn" class="ai-btn">🔍 АНАЛИЗИРОВАТЬ</button>
+                    <div id="analysisResult" class="analysis-result">
+                        Здесь появится AI-анализ игры...
+                    </div>
+                </div>
+
+                <!-- AI Новости -->
+                <div class="ai-card">
+                    <h3>📰 НОВОСТИ ИНДУСТРИИ</h3>
+                    <div id="newsFeed" class="news-feed">
+                        <div class="news-item">🤖 AI готов анализировать ваши игры!</div>
+                    </div>
+                    <button id="refreshNewsBtn" class="small-ai-btn">🔄 Обновить новости</button>
+                </div>
+
+                <!-- Советы AI -->
+                <div class="ai-card">
+                    <h3>💡 СОВЕТЫ AI</h3>
+                    <div id="aiTips" class="tips-box">
+                        Нанимайте разработчиков для ускорения создания игр!
+                    </div>
+                    <button id="getTipBtn" class="small-ai-btn">🎲 Получить совет</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== МОДАЛЬНОЕ ОКНО СОЗДАНИЯ ИГРЫ ========== -->
+    <div id="createGameModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>✨ СОЗДАНИЕ НОВОЙ ИГРЫ</h2>
+            <div class="form-group">
+                <label>Название игры:</label>
+                <input type="text" id="gameName" placeholder="Например: Cyber Quest" maxlength="30">
+            </div>
+            <div class="form-group">
+                <label>Жанр:</label>
+                <select id="gameGenre">
+                    <option value="RPG">RPG</option>
+                    <option value="Шутер">Шутер</option>
+                    <option value="Стратегия">Стратегия</option>
+                    <option value="Платформер">Платформер</option>
+                    <option value="Симулятор">Симулятор</option>
+                    <option value="Гонки">Гонки</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Сложность (чем выше, тем дольше делать, но больше награда):</label>
+                <input type="range" id="gameComplexity" min="50" max="300" value="120">
+                <span id="complexityValue">120</span>
+            </div>
+            <button id="confirmCreateGame" class="modal-btn">НАЧАТЬ РАЗРАБОТКУ</button>
+        </div>
+    </div>
+
+    <!-- ========== МОДАЛЬНОЕ ОКНО НАСТРОЕК ========== -->
+    <div id="settingsModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal settings-close">&times;</span>
+            <h2>⚙️ НАСТРОЙКИ</h2>
+            <div class="form-group">
+                <label>🎵 Звук:</label>
+                <button id="toggleSoundBtn" class="settings-btn">Включен</button>
+            </div>
+            <div class="form-group">
+                <label>📀 Анимации:</label>
+                <button id="toggleAnimationsBtn" class="settings-btn">Включены</button>
+            </div>
+            <div class="form-group">
+                <label>💾 Авто-сохранение (каждый день):</label>
+                <button id="toggleAutosaveBtn" class="settings-btn">Включено</button>
+            </div>
+            <div class="form-group">
+                <label>🗑️ Сбросить прогресс:</label>
+                <button id="resetGameBtn" class="settings-btn danger">СБРОСИТЬ ВСЁ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== МОДАЛЬНОЕ ОКНО ОБ ИГРЕ ========== -->
+    <div id="creditsModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal credits-close">&times;</span>
+            <h2>📜 ОБ ИГРЕ</h2>
+            <div class="credits-text">
+                <p><strong>DEVZ</strong> - симулятор управления игровой студией</p>
+                <p>Создавайте игры, нанимайте разработчиков, улучшайте студию!</p>
+                <p>AI анализирует ваши проекты и даёт советы для успеха.</p>
+                <br>
+                <p>🎮 <strong>Как играть:</strong></p>
+                <p>1. Создавайте игры через кнопку "Создать новую игру"</p>
+                <p>2. Ждите завершения разработки (каждый день прогресс идёт)</p>
+                <p>3. Продавайте игры и получайте доход + репутацию</p>
+                <p>4. Используйте AI для анализа успеха игр</p>
+                <br>
+                <p>© 2026 Made by Studio N</p>
+                <p>v1.0 | DEVZ Game Studio Simulator</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
