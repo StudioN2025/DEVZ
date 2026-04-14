@@ -11,7 +11,8 @@
     <!-- ========== ЗАСТАВКА (SPLASH) ========== -->
     <div id="splashScreen" class="splash-overlay">
         <div class="splash-content">
-            <pre class="ascii-logo">
+            <div class="glitch-wrapper">
+                <pre class="ascii-logo glitch" data-text="DEVZ">
 ╔═══════════════════════════════════════╗
 ║                                       ║
 ║      ██████╗ ███████╗██╗   ██╗███████╗ ║
@@ -21,26 +22,29 @@
 ║      ██████╔╝███████╗ ╚████╔╝ ███████╗ ║
 ║      ╚═════╝ ╚══════╝  ╚═══╝  ╚══════╝ ║
 ║                                       ║
-║         GAME STUDIO SIMULATOR         ║
-║              v1.0                     ║
-║                                       ║
-║        🎮  🖥️  👾  💻  🕹️            ║
-║                                       ║
 ╚═══════════════════════════════════════╝
-            </pre>
-            <div class="splash-madeby">Made by Studio N</div>
+                </pre>
+            </div>
+            <div class="splash-madeby pulse-text">Made by Studio N</div>
             <div class="loading-bar-container">
                 <div class="loading-bar" id="loadingBar"></div>
+                <div class="loading-glow"></div>
             </div>
             <p class="splash-text" id="splashText">Загрузка движка...</p>
+            <div class="floating-dots">
+                <span>●</span><span>●</span><span>●</span>
+            </div>
         </div>
     </div>
 
     <!-- ========== ГЛАВНОЕ МЕНЮ ========== -->
     <div id="mainMenu" class="menu-container hidden">
-        <div class="menu-background"></div>
+        <div class="menu-background">
+            <div class="floating-particles"></div>
+        </div>
         <div class="menu-panel">
-            <pre class="menu-logo">
+            <div class="menu-logo-wrapper">
+                <pre class="menu-logo">
 ╔═══════════════════════════════════════╗
 ║      ██████╗ ███████╗██╗   ██╗███████╗ ║
 ║      ██╔══██╗██╔════╝██║   ██║╚══███╔╝ ║
@@ -49,19 +53,28 @@
 ║      ██████╔╝███████╗ ╚████╔╝ ███████╗ ║
 ║      ╚═════╝ ╚══════╝  ╚═══╝  ╚══════╝ ║
 ╚═══════════════════════════════════════╝
-            </pre>
-            <h1 class="game-title">DEVZ</h1>
+                </pre>
+            </div>
+            <h1 class="game-title neon-text">DEVZ</h1>
             <p class="game-subtitle">Симулятор игровой студии</p>
             
             <div class="menu-buttons">
-                <button class="menu-btn primary" id="newGameBtn">🎮 НОВАЯ ИГРА</button>
-                <button class="menu-btn" id="loadGameBtn">💾 ЗАГРУЗИТЬ</button>
-                <button class="menu-btn" id="settingsMenuBtn">⚙️ НАСТРОЙКИ</button>
-                <button class="menu-btn" id="creditsBtn">📜 ОБ ИГРЕ</button>
+                <button class="menu-btn primary" id="newGameBtn">
+                    <span class="btn-icon">🎮</span> НОВАЯ ИГРА
+                </button>
+                <button class="menu-btn" id="loadGameBtn">
+                    <span class="btn-icon">💾</span> ЗАГРУЗИТЬ
+                </button>
+                <button class="menu-btn" id="settingsMenuBtn">
+                    <span class="btn-icon">⚙️</span> НАСТРОЙКИ
+                </button>
+                <button class="menu-btn" id="creditsBtn">
+                    <span class="btn-icon">📜</span> ОБ ИГРЕ
+                </button>
             </div>
             
             <div class="menu-footer">
-                <p>© 2026 Studio N | AI Analysis System</p>
+                <p>© 2026 Studio N | AI Analysis System | v2.0</p>
             </div>
         </div>
     </div>
@@ -70,13 +83,16 @@
     <div id="gameContainer" class="game-container hidden">
         <!-- Верхняя панель ресурсов -->
         <div class="top-bar">
-            <div class="studio-name-header">🎮 DEVZ</div>
+            <div class="studio-name-header">
+                <span class="pulse-dot"></span>
+                🎮 DEVZ
+            </div>
             <div class="resources">
-                <div class="res-item">💰 <span id="money">50000</span>$</div>
-                <div class="res-item">⭐ <span id="reputation">50</span> реп</div>
-                <div class="res-item">👥 <span id="devCount">3</span> дев</div>
-                <div class="res-item">🎮 <span id="projectCount">0</span> проект</div>
-                <div class="res-item">📅 День <span id="day">1</span></div>
+                <div class="res-item tooltip">💰 <span id="money">50000</span>$<span class="tooltip-text">Деньги студии</span></div>
+                <div class="res-item tooltip">⭐ <span id="reputation">50</span> реп<span class="tooltip-text">Репутация студии</span></div>
+                <div class="res-item tooltip">👥 <span id="devCount">3</span> дев<span class="tooltip-text">Разработчики</span></div>
+                <div class="res-item tooltip">🎮 <span id="projectCount">0</span> проект<span class="tooltip-text">Активные проекты</span></div>
+                <div class="res-item tooltip">📅 День <span id="day">1</span><span class="tooltip-text">Игровой день</span></div>
             </div>
             <button id="menuFromGameBtn" class="small-exit">🏠 Меню</button>
         </div>
@@ -87,28 +103,71 @@
             <div class="studio-panel">
                 <div class="panel-header">
                     <h2>🏢 МОЯ СТУДИЯ</h2>
+                    <div class="studio-level-badge" id="studioLevelBadge">Lv.1</div>
                 </div>
+                
+                <!-- ОФИС (КАСТОМИЗАЦИЯ) -->
+                <div class="office-customization">
+                    <h3>🎨 ОФОРМЛЕНИЕ ОФИСА</h3>
+                    <div class="office-preview" id="officePreview">
+                        <div class="office-wall" id="officeWall"></div>
+                        <div class="office-floor" id="officeFloor"></div>
+                        <div class="office-decor" id="officeDecor">
+                            <div class="decor-item" data-decor="plant">🌵</div>
+                            <div class="decor-item" data-decor="poster">🖼️</div>
+                            <div class="decor-item" data-decor="trophy">🏆</div>
+                            <div class="decor-item" data-decor="console">🎮</div>
+                        </div>
+                    </div>
+                    <div class="office-controls">
+                        <div class="control-group">
+                            <label>Стены:</label>
+                            <button class="office-btn" data-wall="default">🏠 Стандарт</button>
+                            <button class="office-btn" data-wall="cyber">💜 Кибер</button>
+                            <button class="office-btn" data-wall="space">🚀 Космос</button>
+                            <button class="office-btn" data-wall="retro">📺 Ретро</button>
+                        </div>
+                        <div class="control-group">
+                            <label>Пол:</label>
+                            <button class="office-btn" data-floor="default">🟫 Дерево</button>
+                            <button class="office-btn" data-floor="modern">⬜ Современный</button>
+                            <button class="office-btn" data-floor="neon">💚 Неон</button>
+                        </div>
+                        <div class="control-group">
+                            <label>Декор:</label>
+                            <button class="decor-buy" data-decor="plant">🌵 Купить растение (500$)</button>
+                            <button class="decor-buy" data-decor="poster">🖼️ Постер (800$)</button>
+                            <button class="decor-buy" data-decor="trophy">🏆 Трофей (1500$)</button>
+                            <button class="decor-buy" data-decor="console">🎮 Консоль (2000$)</button>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="studio-card">
-                    <p><strong>Название:</strong> <span id="studioName">Studio N</span></p>
-                    <p><strong>Уровень:</strong> <span id="studioLvl">1</span> 
+                    <p><strong>👤 Директор:</strong> <span id="studioName">Studio N</span></p>
+                    <p><strong>📈 Уровень:</strong> <span id="studioLvl">1</span> 
                         <span class="upgrade-cost" id="upgradeCostInfo">(апгрейд: 5000$)</span>
                     </p>
-                    <p><strong>Слотов проектов:</strong> <span id="maxSlots">2</span></p>
-                    <p><strong>Скорость разработки:</strong> <span id="devSpeed">1.0</span>x</p>
+                    <p><strong>📊 Слотов проектов:</strong> <span id="maxSlots">2</span></p>
+                    <p><strong>⚡ Скорость разработки:</strong> <span id="devSpeed">1.0</span>x</p>
+                    <div class="exp-bar">
+                        <div class="exp-fill" id="expFill" style="width:0%"></div>
+                        <span class="exp-text">Опыт до следующего уровня</span>
+                    </div>
                 </div>
                 
                 <div class="studio-actions">
-                    <button id="hireDevBtn" class="action-btn">👨‍💻 Нанять (2000$)</button>
-                    <button id="upgradeStudioBtn" class="action-btn">📈 Апгрейд студии</button>
-                    <button id="marketingBtn" class="action-btn">📢 Маркетинг (1000$)</button>
+                    <button id="hireDevBtn" class="action-btn bounce-on-click">👨‍💻 Нанять (2000$)</button>
+                    <button id="upgradeStudioBtn" class="action-btn bounce-on-click">📈 Апгрейд студии</button>
+                    <button id="marketingBtn" class="action-btn bounce-on-click">📢 Маркетинг (1000$)</button>
                 </div>
 
                 <div class="projects-section">
                     <h3>📋 АКТИВНЫЕ ПРОЕКТЫ</h3>
                     <div id="projectsList" class="projects-list">
-                        <div class="empty-projects">Нет проектов. Создайте игру!</div>
+                        <div class="empty-projects shimmer">✨ Нет проектов. Создайте игру! ✨</div>
                     </div>
-                    <button id="createGameBtn" class="create-game-btn">✨ СОЗДАТЬ НОВУЮ ИГРУ</button>
+                    <button id="createGameBtn" class="create-game-btn pulse-btn">✨ СОЗДАТЬ НОВУЮ ИГРУ</button>
                 </div>
             </div>
 
@@ -116,18 +175,23 @@
             <div class="ai-panel">
                 <div class="panel-header">
                     <h2>🤖 AI АНАЛИТИК</h2>
+                    <div class="ai-status">
+                        <span class="ai-dot"></span> ONLINE
+                    </div>
                 </div>
                 
                 <!-- AI анализ готовой игры -->
-                <div class="ai-card">
+                <div class="ai-card glass-effect">
                     <h3>📊 Анализ игры</h3>
-                    <p>Выберите завершённую игру для анализа</p>
+                    <p>Выберите завершённую игру для AI-анализа</p>
                     <select id="gameToAnalyze" class="game-select">
                         <option value="">Нет завершённых игр</option>
                     </select>
-                    <button id="analyzeGameBtn" class="ai-btn">🔍 АНАЛИЗИРОВАТЬ</button>
+                    <button id="analyzeGameBtn" class="ai-btn">
+                        <span class="spinner"></span> АНАЛИЗИРОВАТЬ
+                    </button>
                     <div id="analysisResult" class="analysis-result">
-                        Здесь появится AI-анализ игры...
+                        <div class="analysis-placeholder">🤖 AI ждёт команды...</div>
                     </div>
                 </div>
 
@@ -135,7 +199,8 @@
                 <div class="ai-card">
                     <h3>📰 НОВОСТИ ИНДУСТРИИ</h3>
                     <div id="newsFeed" class="news-feed">
-                        <div class="news-item">🤖 AI готов анализировать ваши игры!</div>
+                        <div class="news-item fade-in">🤖 AI анализатор готов к работе!</div>
+                        <div class="news-item fade-in">💡 Совет: кастомизируй офис для вдохновения</div>
                     </div>
                     <button id="refreshNewsBtn" class="small-ai-btn">🔄 Обновить новости</button>
                 </div>
@@ -143,10 +208,29 @@
                 <!-- Советы AI -->
                 <div class="ai-card">
                     <h3>💡 СОВЕТЫ AI</h3>
-                    <div id="aiTips" class="tips-box">
+                    <div id="aiTips" class="tips-box typing-effect">
                         Нанимайте разработчиков для ускорения создания игр!
                     </div>
                     <button id="getTipBtn" class="small-ai-btn">🎲 Получить совет</button>
+                </div>
+                
+                <!-- Статистика студии -->
+                <div class="ai-card">
+                    <h3>📊 СТАТИСТИКА</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-value" id="totalGames">0</span>
+                            <span class="stat-label">Выпущено игр</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="totalEarned">0</span>
+                            <span class="stat-label">Заработано $</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="bestGame">-</span>
+                            <span class="stat-label">Лучшая игра</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -154,30 +238,30 @@
 
     <!-- ========== МОДАЛЬНОЕ ОКНО СОЗДАНИЯ ИГРЫ ========== -->
     <div id="createGameModal" class="modal hidden">
-        <div class="modal-content">
+        <div class="modal-content pop-in">
             <span class="close-modal">&times;</span>
             <h2>✨ СОЗДАНИЕ НОВОЙ ИГРЫ</h2>
             <div class="form-group">
                 <label>Название игры:</label>
-                <input type="text" id="gameName" placeholder="Например: Cyber Quest" maxlength="30">
+                <input type="text" id="gameName" placeholder="Например: Cyber Quest" maxlength="30" class="shake-focus">
             </div>
             <div class="form-group">
                 <label>Жанр:</label>
                 <select id="gameGenre">
-                    <option value="RPG">RPG</option>
-                    <option value="Шутер">Шутер</option>
-                    <option value="Стратегия">Стратегия</option>
-                    <option value="Платформер">Платформер</option>
-                    <option value="Симулятор">Симулятор</option>
-                    <option value="Гонки">Гонки</option>
+                    <option value="RPG">🎲 RPG</option>
+                    <option value="Шутер">🔫 Шутер</option>
+                    <option value="Стратегия">♟️ Стратегия</option>
+                    <option value="Платформер">🏃 Платформер</option>
+                    <option value="Симулятор">🚗 Симулятор</option>
+                    <option value="Гонки">🏎️ Гонки</option>
                 </select>
             </div>
             <div class="form-group">
                 <label>Сложность (чем выше, тем дольше делать, но больше награда):</label>
                 <input type="range" id="gameComplexity" min="50" max="300" value="120">
-                <span id="complexityValue">120</span>
+                <span id="complexityValue" class="complexity-badge">120</span>
             </div>
-            <button id="confirmCreateGame" class="modal-btn">НАЧАТЬ РАЗРАБОТКУ</button>
+            <button id="confirmCreateGame" class="modal-btn">🚀 НАЧАТЬ РАЗРАБОТКУ</button>
         </div>
     </div>
 
@@ -191,12 +275,16 @@
                 <button id="toggleSoundBtn" class="settings-btn">Включен</button>
             </div>
             <div class="form-group">
-                <label>📀 Анимации:</label>
+                <label>🎨 Анимации:</label>
                 <button id="toggleAnimationsBtn" class="settings-btn">Включены</button>
             </div>
             <div class="form-group">
-                <label>💾 Авто-сохранение (каждый день):</label>
+                <label>💾 Авто-сохранение:</label>
                 <button id="toggleAutosaveBtn" class="settings-btn">Включено</button>
+            </div>
+            <div class="form-group">
+                <label>✨ Эффекты частиц:</label>
+                <button id="toggleParticlesBtn" class="settings-btn">Включены</button>
             </div>
             <div class="form-group">
                 <label>🗑️ Сбросить прогресс:</label>
@@ -211,18 +299,19 @@
             <span class="close-modal credits-close">&times;</span>
             <h2>📜 ОБ ИГРЕ</h2>
             <div class="credits-text">
-                <p><strong>DEVZ</strong> - симулятор управления игровой студией</p>
+                <p><strong style="color:#ffaa44;">DEVZ</strong> - симулятор управления игровой студией</p>
                 <p>Создавайте игры, нанимайте разработчиков, улучшайте студию!</p>
-                <p>AI анализирует ваши проекты и даёт советы для успеха.</p>
+                <p>🤖 AI анализирует ваши проекты и даёт советы для успеха.</p>
+                <p>🎨 Кастомизируйте офис для повышения морали!</p>
                 <br>
                 <p>🎮 <strong>Как играть:</strong></p>
                 <p>1. Создавайте игры через кнопку "Создать новую игру"</p>
                 <p>2. Ждите завершения разработки (каждый день прогресс идёт)</p>
                 <p>3. Продавайте игры и получайте доход + репутацию</p>
-                <p>4. Используйте AI для анализа успеха игр</p>
+                <p>4. Украшайте офис для бонусов к скорости</p>
                 <br>
                 <p>© 2026 Made by Studio N</p>
-                <p>v1.0 | DEVZ Game Studio Simulator</p>
+                <p>v2.0 | DEVZ Game Studio Simulator | Toxoon Edition</p>
             </div>
         </div>
     </div>
